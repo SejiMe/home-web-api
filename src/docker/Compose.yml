@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+
+    db:
+        image: postgres
+        restart: always
+        shm_size: 256M
+        environment:
+            - POSTGRES_USER=seji
+            - POSTGRES_PASSWORD=dev
+            - POSTGRES_DB=HomeDB
+        ports:
+            - "5432:5432"
+        networks:
+            HomeNetwork:
+                ipv4_address: "10.10.0.2"
+        volumes:
+            - ./db_data:/var/lib/postgresql/data
+
+    pgadmin:
+        image: dpage/pgadmin4
+        ports:
+            - "5050:80"
+        networks:
+            HomeNetwork:
+                ipv4_address: "10.10.0.3"
+        environment:
+            - PGADMIN_DEFAULT_EMAIL=home.admin@gmail.com
+            - PGADMIN_DEFAULT_PASSWORD=admin123
+            - PGADMIN_LISTEN_PORT=80
+        volumes:
+            - ./pgadmin_data:/var/lib/pgadmin
+
+networks:
+    HomeNetwork:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 10.10.0.0/16
+                  gateway: 10.10.0.1
+
+volumes:
+    db_data:
+    pgadmin_data:
