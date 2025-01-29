@@ -1,78 +1,98 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using web.api.Infrastructure.Data;
+using web.api.Interfaces;
 using web.api.Models;
+using web.api.Services;
 
 namespace web.api.Endpoints
 {
     public static class TodoEndpoint
     {
-        private static HomeDbContext _context;
-
-        public static void RegisterTodoEndpoint(
-            this IEndpointRouteBuilder builder,
-            HomeDbContext context
-        )
+        public static void RegisterTodoEndpoint(this IEndpointRouteBuilder builder)
         {
-            _context = context;
+            builder.MapGet("/todos", GetAllTodo);
+            builder.MapGet("/todos/{id:guid}", GetTodoItem);
+            builder.MapPost("/todos", PostTodoItem);
+            builder.MapPut("/todos/{id:guid}", PutTodoItem);
+            builder.MapDelete("/todos/{id:guid}", DeleteTodoItem);
+            // builder.MapGet("/todos/{id:guid}/complete", CompleteTodoItem);
         }
 
-        public static async Task<ActionResult<Todo>> GetTodoItem(int id)
+        public static async Task<IResult> GetAllTodo(ITodoService todoService)
         {
-            var todoItem = await _context.Todos.FindAsync(id);
+            var todoList = await todoService.GetTodosAsync();
+
+            if (todoList == null)
+            {
+                return Results.NotFound();
+            }
+
+            return Results.Ok(todoList);
+        }
+
+        public static async Task<IResult> GetTodoItem(Guid id, ITodoService todoService)
+        {
+            var todoItem = await todoService.GetTodoAsync(id);
 
             if (todoItem == null)
             {
-                return NotFound();
+                return Results.NotFound();
             }
 
-            return todoItem;
+            return Results.Ok(todoItem);
         }
 
-        public static async Task<ActionResult<Todo>> PostTodoItem(Todo todo)
+        public static async Task<Results<Created<Todo>, BadRequest>> PostTodoItem(
+            Todo todo,
+            ITodoService todoService
+        )
         {
-            _context.Todos.Add(todo);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetTodoItem), new { id = todo.Id }, todo);
+            var createdTodo = await todoService.CreateTodoAsync(todo);
+            return TypedResults.Created("CreateTodoItem", createdTodo);
         }
 
-        public static async Task<IActionResult> PutTodoItem(int id, Todo todo)
+        public static async Task<Results<NoContent, BadRequest, NotFound<Guid>>> PutTodoItem(
+            Guid id,
+            Todo todo,
+            ITodoService todoService
+        )
         {
-            if (id != todo.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(todo).State = EntityState.Modified;
+            if (todo.Id != id)
+                return TypedResults.BadRequest();
 
             try
             {
-                await _context.SaveChangesAsync();
+                await todoService.UpdateTodoAsync(id, todo);
+                return TypedResults.NoContent();
             }
-            catch (DbUpdateConcurrencyException) when (!TodoItemExists(id))
+            catch (NullReferenceException)
             {
-                return NotFound();
+                return TypedResults.NotFound(id);
             }
-
-            return NoContent();
         }
 
-        public static async Task<IActionResult> DeleteTodoItem(int id)
+        public static async Task<Results<NoContent, NotFound, BadRequest>> DeleteTodoItem(
+            Guid id,
+            ITodoService todoService
+        )
         {
-            var todoItem = await _context.TodoItems.FindAsync(id);
+            var todoItem = await todoService.GetTodoAsync(id);
 
             if (todoItem == null)
             {
-                return NotFound();
+                return TypedResults.NotFound();
             }
 
-            _context.TodoItems.Remove(todoItem);
-            await _context.SaveChangesAsync();
+            await todoService.DeleteTodoAsync(id);
 
-            return NoContent();
+            return TypedResults.NoContent();
         }
 
-        private static bool TodoItemExists(int id) => _context.TodoItems.Any(e => e.Id == id);
+        private static bool TodoItemExists(Guid id, ITodoService todoService)
+        {
+            var res = todoService.GetTodoAsync(id).Result;
+            return res != null;
+        }
     }
 }
