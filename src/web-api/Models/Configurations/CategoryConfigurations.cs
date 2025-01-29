@@ -9,7 +9,11 @@ namespace web.api.Models.Configurations
             builder.HasKey(c => c.Id);
             builder.Property(c => c.Name).IsRequired();
             builder.Property(c => c.Description).HasDefaultValue(string.Empty);
-            builder.Property(c => c.timeStamp).IsRequired();
+            builder
+                .Property(c => c.TimeStamp)
+                .IsRequired()
+                .HasColumnType("datetime2()")
+                .HasDefaultValueSql("GETUTCDATE()");
         }
     }
 }

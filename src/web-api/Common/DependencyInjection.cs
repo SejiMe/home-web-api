@@ -1,4 +1,6 @@
 using web.api.Infrastructure.Data;
+using web.api.Interfaces;
+using web.api.Services;
 
 namespace web.api.Common
 {
@@ -25,13 +27,24 @@ namespace web.api.Common
             services.AddDbContext<HomeDbContext>(
                 (sp, options) =>
                 {
-                    string connectionString =
-                        "Host=localhost;Port=5432;Username=seji;Password=dev;Database=HomeDb";
+                    // string connectionString =
+                    //     "Host=localhost;Port=5432;Username=seji;Password=dev;Database=HomeDb";
+
+                    string sqlServerConnectionstring =
+                        @"Server=.;Database=HomeDb;Trusted_Connection=True;TrustServerCertificate=True;";
                     var connectionStringsOptions =
                         sp.GetRequiredService<ConnectionStringsOptions>();
-                    options.UseNpgsql(connectionString);
+                    options.UseSqlServer(sqlServerConnectionstring);
+                    // options.UseNpgsql(connectionString);
                 }
             );
+            return services;
+        }
+
+        public static IServiceCollection AddServices(this IServiceCollection services)
+        {
+            services.AddScoped<ITodoService, TodoService>();
+            services.AddScoped<ICategoryService, CategoryService>();
             return services;
         }
     }

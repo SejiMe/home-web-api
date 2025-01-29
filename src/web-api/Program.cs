@@ -1,3 +1,6 @@
+using Scalar.AspNetCore;
+using web.api.Endpoints;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,15 +10,29 @@ builder.Services.AddOpenApi();
 builder.Services.AddCommon(builder.Configuration);
 builder.Services.AddEfCore(builder.Configuration);
 
+builder.Services.AddServices();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    app.MapScalarApiReference(options =>
+    {
+        options.Title = "Home API";
+
+        options.DarkMode = true;
+        options.Theme = ScalarTheme.Moon;
+        options.OpenApiRoutePattern = "/openapi/v1.json";
+    });
 }
 
 app.UseHttpsRedirection();
+
+app.RegisterTodoEndpoint();
+app.RegisterCategoryEndpoint();
 
 var summaries = new[]
 {
