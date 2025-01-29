@@ -6,8 +6,19 @@ namespace web.api.Models
         public required string Name { get; set; }
         public string? Description { get; set; } = string.Empty;
 
-        public required TimeSpan timeStamp { get; set; }
+        public bool IsActive { get; private set; } = true;
+        public required DateTime TimeStamp { get; set; }
 
         public ICollection<Todo> Todos { get; set; } = null!;
+
+        public void ActivateCategory()
+        {
+            IsActive = true;
+        }
+
+        public void DeactiveCategory()
+        {
+            IsActive = false;
+        }
     }
 }
