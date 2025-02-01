@@ -1,5 +1,6 @@
 namespace web.api.Models
 {
+    ///
     public class Todo
     {
         public Guid Id { get; set; } = Guid.CreateVersion7();
@@ -10,11 +11,19 @@ namespace web.api.Models
 
         public void CompleteTask()
         {
+            if (IsComplete is true)
+            {
+                throw new InvalidOperationException("Task is already completed");
+            }
+
             IsComplete = true;
         }
 
         public void IncompleteTask()
         {
+            if (IsComplete is not true)
+                throw new InvalidOperationException("Task is already incomplete");
+
             IsComplete = false;
         }
     }
