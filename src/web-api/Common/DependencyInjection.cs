@@ -43,6 +43,7 @@ namespace web.api.Common
 
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
+            services.AddHttpContextAccessor();
             services.AddScoped<ITodoService, TodoService>();
             services.AddScoped<ICategoryService, CategoryService>();
             return services;
