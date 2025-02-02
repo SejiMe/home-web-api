@@ -11,11 +11,27 @@ namespace web.api.Endpoints
     {
         public static void RegisterTodoEndpoint(this IEndpointRouteBuilder builder)
         {
-            builder.MapGet("/todos", GetAllTodo);
-            builder.MapGet("/todos/{id:guid}", GetTodoItem);
-            builder.MapPost("/todos", PostTodoItem);
-            builder.MapPut("/todos/{id:guid}", PutTodoItem);
-            builder.MapDelete("/todos/{id:guid}", DeleteTodoItem);
+            builder
+                .MapGroup("todos")
+                .MapGet("", GetAllTodo)
+                .WithTags("Todos Endpoint")
+                .WithDescription("Get all todo items")
+                .Produces<IReadOnlyList<Todo>>(StatusCodes.Status200OK);
+
+            builder
+                .MapGroup("todos")
+                .MapGet("{id:guid}", GetTodoItem)
+                .WithTags("Todos Endpoint")
+                .WithDescription("Get a todo item by id")
+                .Produces<Todo>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status404NotFound);
+
+            builder.MapGroup("todos").MapPost("", PostTodoItem).WithTags("Todos Endpoint");
+            builder.MapGroup("todos").MapPut("{id:guid}", PutTodoItem).WithTags("Todos Endpoint");
+            builder
+                .MapGroup("todos")
+                .MapDelete("{id:guid}", DeleteTodoItem)
+                .WithTags("Todos Endpoint");
             // builder.MapGet("/todos/{id:guid}/complete", CompleteTodoItem);
         }
 

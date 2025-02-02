@@ -10,9 +10,40 @@ public static class CategoryEndpoint
 {
     public static void RegisterCategoryEndpoint(this IEndpointRouteBuilder builder)
     {
-        builder.MapGet("/categories", GetAllCategories);
-        builder.MapGet("/categories/{id:guid}", GetCategory);
-        builder.MapPost("/categories", PostCategory);
+        builder.MapGroup("categories").MapGet("", GetAllCategories).WithTags("Categories Endpoint");
+        ;
+        builder
+            .MapGroup("categories")
+            .MapGet("{id:guid}", GetCategory)
+            .WithTags("Categories Endpoint");
+        ;
+        builder
+            .MapGroup("categories")
+            .MapPatch(
+                "{id:guid}",
+                (
+                    [FromRoute] Guid id,
+                    [FromBody] UpdateCategoryRequest request,
+                    ICategoryService categoryService
+                ) => UpdateCategory(id, request, categoryService)
+            )
+            .WithTags("Categories Endpoint");
+
+        builder.MapGroup("categories").MapPost("", PostCategory).WithTags("Categories Endpoint");
+
+        builder
+            .MapGroup("categories")
+            .MapDelete(
+                "{id:guid}",
+                (
+                    [FromRoute] Guid id,
+                    ICategoryService categoryService,
+                    IHttpContextAccessor accessor
+                ) => DeleteCategory(id, categoryService, accessor)
+            )
+            .WithTags("Categories Endpoint")
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
     }
 
     private static async Task<Results<Ok<IReadOnlyList<CategoryDTO>>, NotFound>> GetAllCategories(
@@ -29,19 +60,31 @@ public static class CategoryEndpoint
         return TypedResults.Ok<IReadOnlyList<CategoryDTO>>([.. categoryList]);
     }
 
-    private static async Task<Results<Ok<CategoryDTO>, NotFound<Guid>>> GetCategory(
+    private static async Task<Results<Ok<CategoryDTO>, ProblemHttpResult>> GetCategory(
         Guid id,
-        ICategoryService categoryService
+        ICategoryService categoryService,
+        IHttpContextAccessor httpContextAccessor
     )
     {
-        var category = await categoryService.GetCategoryAsync(id);
-
-        if (category == null)
+        try
         {
-            return TypedResults.NotFound(id);
-        }
+            var category = await categoryService.GetCategoryAsync(id);
 
-        return TypedResults.Ok(category);
+            return TypedResults.Ok(category);
+        }
+        catch (NullReferenceException notFound)
+        {
+            ProblemDetails details = new ProblemDetails()
+            {
+                Title = "Category not found",
+                Detail = notFound.Message,
+                Status = StatusCodes.Status404NotFound,
+                Instance = httpContextAccessor.HttpContext!.Request.Path,
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+            };
+            return TypedResults.Problem(details);
+            // return TypedResults.NotFound(id);
+        }
     }
 
     public record CreateCategoryRequest(string Name, string? Description);
@@ -72,5 +115,82 @@ public static class CategoryEndpoint
             };
             return TypedResults.Problem(details);
         }
+    }
+
+    public record UpdateCategoryRequest(string Name, string? Description);
+
+    private static async Task<
+        Results<Ok<CategoryDTO>, NotFound<Guid>, BadRequest<UpdateCategoryRequest>>
+    > UpdateCategory(
+        [FromRoute] Guid categoryId,
+        UpdateCategoryRequest request,
+        ICategoryService categoryService
+    )
+    {
+        if (categoryId == Guid.Empty)
+            return TypedResults.BadRequest(request);
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return TypedResults.BadRequest(request);
+
+        if (Guid.TryParse(categoryId.ToString(), out var _))
+            return TypedResults.BadRequest(request);
+
+        try
+        {
+            var updatedCategory = await categoryService.UpdateCategoryAsync(
+                categoryId,
+                new CategoryDTO() { Name = request.Name, Description = request.Description }
+            );
+            return TypedResults.Ok(updatedCategory);
+        }
+        catch (NullReferenceException)
+        {
+            // ProblemDetails details = new ProblemDetails()
+            // {
+            //     Title = "Category not found",
+            //     Detail = notFound.Message,
+            //     Status = StatusCodes.Status404NotFound,
+            // };
+            // return TypedResults.Problem(details);
+
+            return TypedResults.NotFound(categoryId);
+        }
+    }
+
+    public record DeleteCategoryRequest(Guid Id);
+
+    private static async Task<Results<Ok, ProblemHttpResult>> DeleteCategory(
+        Guid id,
+        ICategoryService categoryService,
+        IHttpContextAccessor httpContextAccessor
+    )
+    {
+        if (id == Guid.Empty)
+        {
+            ProblemDetails details = new ProblemDetails()
+            {
+                Title = "Invalid Id",
+                Detail = "Id cannot be empty",
+                Status = StatusCodes.Status400BadRequest,
+                Instance = httpContextAccessor.HttpContext!.Request.Path,
+            };
+            return TypedResults.Problem(details);
+        }
+
+        var isDeleted = await categoryService.DeleteCategoryAsync(id);
+        if (isDeleted is false)
+        {
+            ProblemDetails details = new ProblemDetails()
+            {
+                Title = "Category not found",
+                Detail = $"Category with id {id} not found",
+                Status = StatusCodes.Status404NotFound,
+                Instance = httpContextAccessor.HttpContext!.Request.Path,
+            };
+            return TypedResults.Problem(details);
+        }
+
+        return TypedResults.Ok();
     }
 }
