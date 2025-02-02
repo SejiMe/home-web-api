@@ -18,15 +18,12 @@ namespace web.api.Services
         public async Task<CategoryDTO> CreateCategoryAsync(CategoryDTO dto)
         {
             // Must check name first before creating a new category
-
             var existingCategory = await _context.Categories.FirstOrDefaultAsync(d =>
                 d.Name == dto.Name
             );
 
             if (existingCategory != null)
-            {
                 throw new InvalidOperationException("Category already exists");
-            }
 
             await _context.Categories.AddAsync(
                 new Category()
@@ -50,15 +47,10 @@ namespace web.api.Services
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
             var category = await _context.Categories.FindAsync(id);
-
-            if (category == null)
-            {
+            if (category is null)
                 return false;
-            }
-
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
-
             return true;
         }
 
@@ -90,12 +82,10 @@ namespace web.api.Services
 
         public async Task<CategoryDTO> UpdateCategoryAsync(Guid id, CategoryDTO dto)
         {
-            var existingCategory = await _context.Categories.FindAsync(id);
-
-            if (existingCategory == null)
-            {
-                throw new NullReferenceException("Category not found");
-            }
+            var existingCategory =
+                await _context.Categories.FindAsync(id)
+                ?? throw new NullReferenceException("Category not found");
+            ;
 
             existingCategory.Name = dto.Name;
             existingCategory.Description = dto.Description;
@@ -131,11 +121,6 @@ namespace web.api.Services
             category.DeactiveCategory();
             _context.SaveChanges();
             return Task.CompletedTask;
-        }
-
-        public Task<CategoryDTO> UpdateCategoryAsync(Guid id, Category category)
-        {
-            throw new NotImplementedException();
         }
     }
 }
