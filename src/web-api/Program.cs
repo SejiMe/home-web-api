@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Identity;
 using Scalar.AspNetCore;
 using web.api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddAuth();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -13,6 +16,16 @@ builder.Services.AddEfCore(builder.Configuration);
 builder.Services.AddServices();
 
 var app = builder.Build();
+
+app.RegisterTodoEndpoint();
+app.RegisterCategoryEndpoint();
+
+app.UseHttpsRedirection();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapIdentityApi<IdentityUser>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -28,11 +41,6 @@ if (app.Environment.IsDevelopment())
         options.OpenApiRoutePattern = "/openapi/v1.json";
     });
 }
-
-app.UseHttpsRedirection();
-
-app.RegisterTodoEndpoint();
-app.RegisterCategoryEndpoint();
 
 var summaries = new[]
 {
@@ -63,6 +71,7 @@ app.MapGet(
             return forecast;
         }
     )
+    .RequireAuthorization()
     .WithName("GetWeatherForecast");
 
 app.Run();
