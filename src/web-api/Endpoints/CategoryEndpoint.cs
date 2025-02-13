@@ -1,6 +1,7 @@
 using System;
 using api.DTOs;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using web.api.Interfaces;
 
@@ -10,15 +11,10 @@ public static class CategoryEndpoint
 {
     public static void RegisterCategoryEndpoint(this IEndpointRouteBuilder builder)
     {
-        builder.MapGroup("categories").MapGet("", GetAllCategories).WithTags("Categories Endpoint");
-        ;
-        builder
-            .MapGroup("categories")
-            .MapGet("{id:guid}", GetCategory)
-            .WithTags("Categories Endpoint");
-        ;
-        builder
-            .MapGroup("categories")
+        var group = builder.MapGroup("categories").WithTags("Categories Endpoint");
+        group.MapGet("", GetAllCategories).RequireAuthorization();
+        group.MapGet("{id:guid}", GetCategory);
+        group
             .MapPatch(
                 "{id:guid}",
                 (
@@ -27,12 +23,15 @@ public static class CategoryEndpoint
                     ICategoryService categoryService
                 ) => UpdateCategory(id, request, categoryService)
             )
-            .WithTags("Categories Endpoint");
+            .WithDescription("Update a category")
+            .RequireAuthorization();
 
-        builder.MapGroup("categories").MapPost("", PostCategory).WithTags("Categories Endpoint");
+        group
+            .MapPost("", PostCategory)
+            .WithDescription("Create a new category")
+            .RequireAuthorization();
 
-        builder
-            .MapGroup("categories")
+        group
             .MapDelete(
                 "{id:guid}",
                 (
@@ -41,9 +40,10 @@ public static class CategoryEndpoint
                     IHttpContextAccessor accessor
                 ) => DeleteCategory(id, categoryService, accessor)
             )
-            .WithTags("Categories Endpoint")
+            .WithDescription("Delete a category")
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .RequireAuthorization();
     }
 
     private static async Task<Results<Ok<IReadOnlyList<CategoryDTO>>, NotFound>> GetAllCategories(
@@ -107,7 +107,7 @@ public static class CategoryEndpoint
         }
         catch (InvalidOperationException exists)
         {
-            ProblemDetails details = new ProblemDetails()
+            ProblemDetails details = new()
             {
                 Title = "Category already exists",
                 Detail = exists.Message,
