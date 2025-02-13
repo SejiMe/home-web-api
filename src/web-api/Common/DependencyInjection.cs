@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using web.api.Infrastructure.Data;
 using web.api.Interfaces;
 using web.api.Services;
@@ -46,6 +47,28 @@ namespace web.api.Common
             services.AddHttpContextAccessor();
             services.AddScoped<ITodoService, TodoService>();
             services.AddScoped<ICategoryService, CategoryService>();
+            return services;
+        }
+
+        public static IServiceCollection AddAuth(this IServiceCollection services)
+        {
+            services.AddAuthorization();
+
+            services
+                .AddAuthentication(IdentityConstants.BearerScheme)
+                .AddBearerToken(IdentityConstants.BearerScheme);
+
+            services
+                .AddIdentityCore<IdentityUser>(options =>
+                {
+                    options.Password.RequireDigit = false;
+                    options.Password.RequireLowercase = false;
+                    options.Password.RequiredLength = 3;
+                    options.Password.RequireNonAlphanumeric = false;
+                    options.Password.RequireUppercase = false;
+                })
+                .AddEntityFrameworkStores<HomeDbContext>()
+                .AddApiEndpoints();
             return services;
         }
     }
