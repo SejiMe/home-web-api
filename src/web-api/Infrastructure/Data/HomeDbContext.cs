@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using web.api.Models;
 
 namespace web.api.Infrastructure.Data
 {
-    public class HomeDbContext : DbContext
+    public class HomeDbContext : IdentityDbContext<IdentityUser>
     {
         public HomeDbContext(DbContextOptions<HomeDbContext> options)
             : base(options) { }
@@ -12,9 +14,11 @@ namespace web.api.Infrastructure.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            
             modelBuilder.Entity<Todo>().ToTable("Todo");
+
             modelBuilder.Entity<Category>().ToTable("Categories");
+
+            base.OnModelCreating(modelBuilder);
         }
     }
 }
