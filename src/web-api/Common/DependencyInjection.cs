@@ -28,15 +28,14 @@ namespace web.api.Common
             services.AddDbContext<HomeDbContext>(
                 (sp, options) =>
                 {
-                    // string connectionString =
-                    //     "Host=localhost;Port=5432;Username=seji;Password=dev;Database=HomeDb";
+                    var HomeDb = sp.GetRequiredService<ConnectionStringsOptions>();
 
-                    string sqlServerConnectionstring =
-                        @"Server=.;Database=HomeDb;Trusted_Connection=True;TrustServerCertificate=True;";
-                    var connectionStringsOptions =
-                        sp.GetRequiredService<ConnectionStringsOptions>();
-                    options.UseSqlServer(sqlServerConnectionstring);
-                    // options.UseNpgsql(connectionString);
+                    string postgresql = HomeDb.ConnectionString;
+                    // var connectionStringsOptions =
+                    //     sp.GetRequiredService<ConnectionStringsOptions>();
+                    // options.UseSqlServer(configuration.GetConnectionString("HomeDb"));
+
+                    options.UseNpgsql(postgresql);
                 }
             );
             return services;

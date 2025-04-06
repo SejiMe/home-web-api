@@ -2,6 +2,8 @@ namespace web.api.Common.Persistence.Options
 {
     public class ConnectionStringsOptions
     {
-        public string HomeDb { get; set; }
+        public const string HomeDb = nameof(HomeDb);
+
+        public string ConnectionString { get; set; }
     }
 }
